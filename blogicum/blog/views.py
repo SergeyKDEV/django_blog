@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render
 from .models import Post, Category
 from django.utils import timezone
 
-DISPLAY_POSTS_COUNT = 5
+DISPLAY_POSTS_COUNT = 10
 
 
 def index(request):

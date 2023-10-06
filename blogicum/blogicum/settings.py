@@ -14,7 +14,6 @@ INSTALLED_APPS = [
     'blog.apps.BlogConfig',
     'pages.apps.PagesConfig',
     'core.apps.CoreConfig',
-    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -90,7 +89,7 @@ TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
-USE_L10N = True
+USE_L10N = False
 
 USE_TZ = True
 
@@ -104,7 +103,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
 
-AUTH_USER_MODEL = 'users.MyUser'
+# AUTH_USER_MODEL = 'users.MyUser'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 

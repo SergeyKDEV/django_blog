@@ -18,7 +18,6 @@ urlpatterns = [
              success_url=reverse_lazy('blog:index'),
         ),
         name='registration',),
-    # path('profile/<int:pk>/'),  #ToDo: finish profile page
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler404 = 'core.views.page_not_found'

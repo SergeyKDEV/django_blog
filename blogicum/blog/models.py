@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from core.models import PublishedModel
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
 
 User = get_user_model()
 
@@ -89,3 +92,7 @@ class Location(PublishedModel):
 
     def __str__(self):
         return self.name
+
+
+class User(User):
+    model = User

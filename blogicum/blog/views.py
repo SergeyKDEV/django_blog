@@ -1,22 +1,33 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
-from .models import Post, Category
+from .models import Post, Category, User
 from django.utils import timezone
+from django.views.generic import ListView, DetailView
+
 
 DISPLAY_POSTS_COUNT = 10
 
 
-def index(request):
+# def index(request):
+#     """
+#     Главная страница проекта.
+#     """
+#     post_list = Post.objects.filter(
+#         Q(pub_date__lte=timezone.now())
+#         & Q(is_published=True)
+#         & Q(category__is_published=True)
+#     ).order_by('pub_date')[:DISPLAY_POSTS_COUNT]
+#     context = {'post_list': post_list}
+#     return render(request, 'blog/index.html', context)
+
+
+class IndexListView(ListView):
     """
-    Главная страница проекта.
+    Главная страница проекта
     """
-    post_list = Post.objects.filter(
-        Q(pub_date__lte=timezone.now())
-        & Q(is_published=True)
-        & Q(category__is_published=True)
-    ).order_by('pub_date')[:DISPLAY_POSTS_COUNT]
-    context = {'post_list': post_list}
-    return render(request, 'blog/index.html', context)
+    model = Post
+    template_name = 'blog/index.html'
+    context_object_name = 'page_obj'
 
 
 def post_detail(request, post_id):
@@ -47,3 +58,9 @@ def category_posts(request, category_slug):
     context = {'category': category,
                'post_list': post_list}
     return render(request, 'blog/category.html', context)
+
+
+class user_profile(DetailView):
+    model = User
+    context_object_name = 'profile'
+    template_name = 'blog/profile.html'

@@ -1,8 +1,8 @@
-from django.db import models
 from django.contrib.auth import get_user_model
 from core.models import PublishedModel
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.urls import reverse
 
 
 User = get_user_model()
@@ -42,6 +42,11 @@ class Post(PublishedModel):
         null=True,
         verbose_name='Категория'
     )
+    image = models.ImageField(
+        'Изображение',
+        upload_to='post_images',
+        blank=True
+    )
 
     class Meta:
         verbose_name = 'публикация'
@@ -49,6 +54,9 @@ class Post(PublishedModel):
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return reverse('post:detail', kwargs={'pk': self.pk})
 
 
 class Category(PublishedModel):
@@ -94,5 +102,26 @@ class Location(PublishedModel):
         return self.name
 
 
-class User(User):
-    model = User
+class Comment(PublishedModel):
+    """
+    Модель комментария.
+    """
+    text = models.TextField(
+        max_length=256,
+        verbose_name='Текст комментария'
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='comment'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        ordering = ('created_at',)
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментараий'

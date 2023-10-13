@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Location, Post, User
+from .models import Category, Location, Post, Comment
 
 
 empty_value_display = 'Не задано'
@@ -23,6 +23,15 @@ class PostAdmin(admin.ModelAdmin):
     )
 
 
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        'post',
+        'text',
+        'author',
+    )
+
+
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Location, LocationAdmin)
 admin.site.register(Post, PostAdmin)
+admin.site.register(Comment, CommentAdmin)

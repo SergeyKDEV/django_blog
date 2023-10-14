@@ -31,5 +31,5 @@ if settings.DEBUG:
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-handler404 = 'core.views.page_not_found'
-handler500 = 'core.views.internal_server_error'
+handler404 = 'pages.views.page_not_found'
+handler500 = 'pages.views.internal_server_error'

@@ -68,16 +68,12 @@ class PostDetailView(DetailView):
         post = get_object_or_404(Post, pk=self.kwargs['post_id'])
         if post.author == self.request.user:
             return post
-
         if not post.is_published:
             raise Http404
-
         if not post.category.is_published:
             raise Http404
-
         if post.pub_date > timezone.now():
             raise Http404
-
         return post
 
     def get_context_data(self, **kwargs):
@@ -280,13 +276,13 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 
 class CommentUpdateView(CommentMixinView, UpdateView):
     """
-    Форма редактирования комментария.
+    Редактирование комментария.
     """
     form_class = CommentForm
 
 
 class CommentDeleteView(CommentMixinView, DeleteView):
     """
-    Форма удаления комментария.
+    Удаление комментария.
     """
     pass

@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.mixins import (LoginRequiredMixin,
                                         PermissionRequiredMixin)
+from django.views import View
 from django.views.generic import (ListView,
                                   DetailView,
                                   UpdateView,
@@ -15,6 +16,24 @@ from .models import Post, Category, User, Comment
 from .forms import PostForm, CommentForm, UserForm
 
 DISPLAY_POSTS_COUNT = 10
+
+
+class CommentMixinView(LoginRequiredMixin, View):
+    model = Comment
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_pk'
+    login_url = '/auth/login/'
+
+    def get_object(self):
+        comment = get_object_or_404(Comment,
+                                    pk=self.kwargs['comment_id'])
+        if comment.author != self.request.user:
+            return Http404
+        return comment
+
+    def get_success_url(self):
+        return reverse('blog:post_detail',
+                       kwargs={'post_id': self.kwargs['post_id'], })
 
 
 class IndexListView(ListView):
@@ -37,7 +56,7 @@ class IndexListView(ListView):
         )
 
 
-class PostDetail(DetailView):
+class PostDetailView(DetailView):
     """
     Страница отдельной записи.
     """
@@ -47,6 +66,18 @@ class PostDetail(DetailView):
 
     def get_object(self, queryset=None):
         post = get_object_or_404(Post, pk=self.kwargs['post_id'])
+        if post.author == self.request.user:
+            return post
+
+        if not post.is_published:
+            raise Http404
+
+        if not post.category.is_published:
+            raise Http404
+
+        if post.pub_date > timezone.now():
+            raise Http404
+
         return post
 
     def get_context_data(self, **kwargs):
@@ -55,10 +86,11 @@ class PostDetail(DetailView):
         context['comments'] = self.object.comment.select_related(
             'author'
         )
+        context['title'] = self.object.title
         return context
 
 
-class CategoryPage(ListView):
+class CategoryListView(ListView):
     """
     Страница отдельной категории.
     """
@@ -75,7 +107,6 @@ class CategoryPage(ListView):
         )
         return super().get_queryset().filter(
             pub_date__lte=timezone.now(),
-            is_published=True,
             category__is_published=True,
             category=self.category
         ).order_by('-pub_date')
@@ -86,7 +117,8 @@ class CategoryPage(ListView):
         return context
 
 
-class EditPost(PermissionRequiredMixin, LoginRequiredMixin, UpdateView):
+class PostUpdateView(PermissionRequiredMixin,
+                     LoginRequiredMixin, UpdateView):
     """
     Редактирование поста.
     """
@@ -94,10 +126,12 @@ class EditPost(PermissionRequiredMixin, LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
     form_class = PostForm
     pk_url_kwarg = 'post_id'
+    login_url = '/auth/login/'
 
     def dispatch(self, request, *args, **kwargs):
         if not self.has_permission():
-            return redirect('blog:post_detail', self.get_object().pk)
+            return redirect('blog:post_detail',
+                            self.get_object().pk)
         get_object_or_404(Post, pk=kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
@@ -111,7 +145,7 @@ class EditPost(PermissionRequiredMixin, LoginRequiredMixin, UpdateView):
                             )
 
 
-class DeletePost(LoginRequiredMixin, DeleteView):
+class PostDeleteView(LoginRequiredMixin, DeleteView):
     """
     Удаление поста.
     """
@@ -133,8 +167,15 @@ class DeletePost(LoginRequiredMixin, DeleteView):
             raise PermissionDenied
         return post
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        post = self.get_object()
+        form = PostForm(instance=post)
+        context.update({'form': form})
+        return context
 
-class UserProfileDetail(ListView):
+
+class UserProfileListView(ListView):
     """
     Страница профиля пользователя.
     """
@@ -144,16 +185,27 @@ class UserProfileDetail(ListView):
     paginate_by = DISPLAY_POSTS_COUNT
 
     def get_queryset(self):
-        return Post.objects.filter(
-            pub_date__lte=timezone.now(),
-            author=get_object_or_404(User, username=self.kwargs['username']),
-            is_published=True,
-            category__is_published=True
-        ).order_by(
-            '-pub_date'
-        ).annotate(
-            comment_count=Count('comment')
-        )
+        if self.request.user.username != self.kwargs['username']:
+            return Post.objects.filter(
+                pub_date__lte=timezone.now(),
+                author=get_object_or_404(User,
+                                         username=self.kwargs['username']),
+                is_published=True,
+                category__is_published=True
+            ).order_by(
+                '-pub_date'
+            ).annotate(
+                comment_count=Count('comment')
+            )
+        else:
+            return Post.objects.filter(
+                author=get_object_or_404(User,
+                                         username=self.kwargs['username']),
+            ).order_by(
+                '-pub_date'
+            ).annotate(
+                comment_count=Count('comment')
+            )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -164,13 +216,14 @@ class UserProfileDetail(ListView):
         return context
 
 
-class UserProfileEdit(LoginRequiredMixin, UpdateView):
+class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
     """
     Страница редактирования профиля пользователя.
     """
     model = User
     template_name = 'blog/user.html'
     form_class = UserForm
+    login_url = '/auth/login/'
 
     def get_object(self, queryset=None):
         return self.request.user
@@ -182,7 +235,7 @@ class UserProfileEdit(LoginRequiredMixin, UpdateView):
         )
 
 
-class CreatePost(LoginRequiredMixin, CreateView):
+class PostCreateView(LoginRequiredMixin, CreateView):
     """
     Страница создания поста.
     """
@@ -199,11 +252,12 @@ class CreatePost(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse(
-            'blog:profile', kwargs={'username': self.request.user}
+            'blog:profile',
+            kwargs={'username': self.request.user}
         )
 
 
-class AddComment(CreateView):
+class CommentCreateView(LoginRequiredMixin, CreateView):
     """
     Добавление комментария.
     """
@@ -223,40 +277,15 @@ class AddComment(CreateView):
                        kwargs={'post_id': self.kwargs['post_id'], })
 
 
-class EditComment(LoginRequiredMixin, UpdateView):
+class CommentUpdateView(CommentMixinView, UpdateView):
     """
     Форма редактирования комментария.
     """
-    model = Comment
-    template_name = 'blog/comment.html'
     form_class = CommentForm
-    pk_url_kwarg = 'comment_id'
-
-    def get_object(self):
-        comment = get_object_or_404(Comment, pk=self.kwargs['comment_id'])
-        if comment.author != self.request.user:
-            return Http404
-        return comment
-
-    def get_success_url(self):
-        return reverse('blog:post_detail',
-                       kwargs={'post_id': self.kwargs['post_id'], })
 
 
-class DeleteComment(LoginRequiredMixin, DeleteView):
+class CommentDeleteView(CommentMixinView, DeleteView):
     """
     Форма удаления комментария.
     """
-    model = Comment
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def get_object(self):
-        comment = get_object_or_404(Comment, pk=self.kwargs['comment_id'])
-        if comment.author != self.request.user:
-            return Http404
-        return comment
-
-    def get_success_url(self):
-        return reverse('blog:post_detail',
-                       kwargs={'post_id': self.kwargs['post_id']})
+    pass

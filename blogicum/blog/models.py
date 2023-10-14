@@ -3,11 +3,13 @@ from core.models import PublishedModel
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.urls import reverse
+from django_cleanup import cleanup
 
 
 User = get_user_model()
 
 
+@cleanup.select
 class Post(PublishedModel):
     """
     Модель публикации.

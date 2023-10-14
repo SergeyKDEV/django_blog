@@ -28,7 +28,7 @@ class CommentMixinView(LoginRequiredMixin, View):
         comment = get_object_or_404(Comment,
                                     pk=self.kwargs['comment_id'])
         if comment.author != self.request.user:
-            return Http404
+            raise Http404
         return comment
 
     def get_success_url(self):
@@ -103,10 +103,11 @@ class CategoryListView(ListView):
         self.category = get_object_or_404(
             Category,
             slug=slug,
-            is_published=True
+            is_published=True,
         )
         return super().get_queryset().filter(
             pub_date__lte=timezone.now(),
+            is_published=True,
             category__is_published=True,
             category=self.category
         ).order_by('-pub_date')
@@ -225,13 +226,13 @@ class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
     form_class = UserForm
     login_url = '/auth/login/'
 
-    def get_object(self, queryset=None):
+    def get_object(self):
         return self.request.user
 
     def get_success_url(self):
         return reverse(
             'blog:profile',
-            kwargs={'username': self.request.user}
+            kwargs={'username': self.request.user.username}
         )
 
 

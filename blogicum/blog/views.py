@@ -64,15 +64,11 @@ class PostDetailView(DetailView):
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
 
-    def get_object(self, queryset=None):
+    def get_object(self):
         post = get_object_or_404(Post, pk=self.kwargs['post_id'])
-        if post.author == self.request.user:
-            return post
-        if not post.is_published:
-            raise Http404
-        if not post.category.is_published:
-            raise Http404
-        if post.pub_date > timezone.now():
+        if (not post.is_published or
+                not post.category.is_published or
+                post.pub_date > timezone.now()):
             raise Http404
         return post
 
@@ -82,7 +78,6 @@ class PostDetailView(DetailView):
         context['comments'] = self.object.comment.select_related(
             'author'
         )
-        context['title'] = self.object.title
         return context
 
 

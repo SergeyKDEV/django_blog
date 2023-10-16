@@ -63,12 +63,42 @@ class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
+    # post = None
+
+    # def get_queryset(self):
+    #     self.post = get_object_or_404(Post, pk=self.kwargs['post_id'])
+    #     if self.post.author == self.request.user:
+    #         return Post.objects.select_related(
+    #             'category',
+    #             'author',
+    #             'location',
+    #         ).annotate(
+    #             comment_count=Count(
+    #                 'comments')
+    #         ).order_by(
+    #             '-pub_date'
+    #         ).filter(
+    #             pk=self.kwargs['post_id']
+    #         )
+    #
+    #     def get_context_data(self, **kwargs):
+    #         context = super().get_context_data(**kwargs)
+    #         if (self.post_data.is_published and
+    #                 self.post_data.pub_date <= timezone.now() and
+    #                 self.post_data.category.is_published):
+    #             context['form'] = CommentForm()
+    #             context['comments'] = self.object.comment.all(
+    #             ).select_related('author')
+    #         return context
 
     def get_object(self):
-        post = get_object_or_404(Post, pk=self.kwargs['post_id'])
-        if (not post.is_published or
-                not post.category.is_published or
-                post.pub_date > timezone.now()):
+        post = get_object_or_404(Post.objects.select_related(
+            'author',
+            'category',
+            'location'),
+            id=self.kwargs['post_id']
+        )
+        if (post.author != self.request.user) and (not post.is_published):
             raise Http404
         return post
 
@@ -216,14 +246,22 @@ class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/user.html'
     form_class = UserForm
     login_url = '/auth/login/'
+    slug_field = 'username'
+    slug_url_kwarg = 'username'
 
     def get_object(self):
-        return self.request.user
+        user = get_object_or_404(
+            User,
+            username=self.kwargs['username'],
+        )
+        if user != self.request.user:
+            raise PermissionDenied
+        return user
 
     def get_success_url(self):
         return reverse(
             'blog:profile',
-            kwargs={'username': self.request.user.username}
+            kwargs={'username': self.kwargs['username']},
         )
 
 

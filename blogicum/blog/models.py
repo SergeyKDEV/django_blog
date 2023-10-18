@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
-from core.models import PublishedModel
 from django.db import models
 from django.urls import reverse
 from django_cleanup import cleanup
 
+from core.consts import CHAR_FIELD_MAX_LENGTH
+from core.models import PublishedModel
 
 User = get_user_model()
 
@@ -14,7 +15,7 @@ class Post(PublishedModel):
     Модель публикации.
     """
     title = models.CharField(
-        max_length=256,
+        max_length=CHAR_FIELD_MAX_LENGTH,
         verbose_name='Заголовок'
     )
     text = models.TextField(
@@ -44,12 +45,13 @@ class Post(PublishedModel):
         verbose_name='Категория'
     )
     image = models.ImageField(
-        'Изображение',
+        verbose_name='Изображение',
         upload_to='post_images',
         blank=True
     )
 
     class Meta:
+        ordering = ('-pub_date',)
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
 
@@ -65,7 +67,7 @@ class Category(PublishedModel):
     Модель категорий.
     """
     title = models.CharField(
-        max_length=256,
+        max_length=CHAR_FIELD_MAX_LENGTH,
         verbose_name='Заголовок'
     )
     description = models.TextField(
@@ -91,7 +93,7 @@ class Location(PublishedModel):
     Модель местоположения.
     """
     name = models.CharField(
-        max_length=256,
+        max_length=CHAR_FIELD_MAX_LENGTH,
         verbose_name='Название места'
     )
 
@@ -108,21 +110,26 @@ class Comment(PublishedModel):
     Модель комментария.
     """
     text = models.TextField(
-        max_length=256,
+        max_length=CHAR_FIELD_MAX_LENGTH,
         verbose_name='Текст комментария'
     )
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name='comment'
+        related_name='comment',
+        verbose_name='Связанный пост'
     )
     created_at = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(
         User,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Автор комментарния'
     )
 
     class Meta:
         ordering = ('created_at',)
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарий'
+
+    def __str__(self):
+        return self.post

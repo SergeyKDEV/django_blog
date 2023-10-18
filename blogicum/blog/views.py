@@ -1,21 +1,19 @@
+from django.contrib.auth.mixins import (LoginRequiredMixin,
+                                        PermissionRequiredMixin)
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
 from django.urls import reverse, reverse_lazy
-from django.contrib.auth.mixins import (LoginRequiredMixin,
-                                        PermissionRequiredMixin)
+from django.utils import timezone
 from django.views import View
-from django.views.generic import (ListView,
-                                  DetailView,
-                                  UpdateView,
-                                  CreateView,
-                                  DeleteView)
-from .models import Post, Category, User, Comment
-from .forms import PostForm, CommentForm, UserForm
+from django.views.generic import (CreateView, DeleteView, DetailView, ListView,
+                                  UpdateView)
 
-DISPLAY_POSTS_COUNT = 10
+from core.consts import DISPLAY_POSTS_COUNT
+
+from .forms import CommentForm, PostForm, UserForm
+from .models import Category, Comment, Post, User
 
 
 class CommentMixinView(LoginRequiredMixin, View):
@@ -65,12 +63,14 @@ class PostDetailView(DetailView):
     pk_url_kwarg = 'post_id'
 
     def get_object(self):
+        post_id = self.kwargs.get('post_id')
         post = get_object_or_404(Post.objects.select_related(
             'author',
             'category',
             'location'),
-            id=self.kwargs['post_id']
+            id=post_id
         )
+
         if (post.author != self.request.user) and (not post.is_published):
             raise Http404
         return post

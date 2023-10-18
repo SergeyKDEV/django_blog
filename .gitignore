@@ -60,6 +60,9 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+static/
+static/*
+.static/
 .static/*
 
 # Flask stuff:
@@ -151,3 +154,4 @@ media/
 
 sent_emails/
 
+!/blogicum/static/
